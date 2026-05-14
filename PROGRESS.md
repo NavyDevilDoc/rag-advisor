@@ -193,6 +193,13 @@ Working session on what it would take to operationalize this into a professional
 
 ---
 
+### 2026-05-14 — Post-Sprint-2B refinements (feedback UX + AI response cache)
+
+Two small follow-ups after Sprint 2B shipped:
+
+- **Feedback widget — thumb is now a complete action.** Original UX presented a textarea + Send / "No thanks" pair after thumb click, with Send disabled until non-empty. Felt soft-blocking. New flow: click thumb → immediate POST + "✓ Thanks for the feedback." A small underlined "+ Add a one-line comment?" link sits below. Click reveals textarea + Send. User can walk away after the thumb; comment is genuinely optional. Session-storage flag now set on thumb click (was waiting for comment Send), so a refresh post-thumb doesn't re-prompt.
+- **AI response cache.** In-memory LRU caches (max 1024 entries each) on `/api/analyze` and `/api/evaluate-pipeline`, keyed on SHA-256 of the canonical (sorted-keys) JSON of the request body. First share-link visitor pays the LLM call; every subsequent viewer of the same payload returns in milliseconds for free. **Local benchmark: 7.3 s → 0.25 s on cache hit (29× speedup, zero LLM cost on the hit).** Live verification on Railway showed byte-identical responses across two cold visitors, removing the small inconsistency where viewers of the same share-link could see slightly different paragraphs from model non-determinism. Process-local; restart clears — swap for Redis in Phase 5 if persistence becomes needed.
+
 ### 2026-05-14 — Phase 4 Sprint 2B (privacy, terms, feedback, analytics, print)
 
 Four launch-prep tasks shipped together:
