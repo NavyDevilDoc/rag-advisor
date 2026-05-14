@@ -193,6 +193,25 @@ Working session on what it would take to operationalize this into a professional
 
 ---
 
+### 2026-05-14 — Split landing and wizard into distinct URLs
+
+Previously `/` rendered both the landing and the wizard, with a state flip in `App.jsx` switching views. Now they're real distinct routes:
+
+- **`/`** → Landing only
+- **`/assessment`** → Wizard / results
+
+Implementation:
+- New `utils/router.js` — minimal client-side router (~30 LOC). `usePath()` listens for `popstate` + a `"ragnav"` custom event we dispatch on `navigate()` calls. No router dep.
+- `App.jsx` routes by pathname directly. Pushing/replacing history works correctly with browser Back/Forward.
+- **Auto-redirect from `/` → `/assessment`** when a share-link hash or saved localStorage progress is present, via `replaceState` so Back doesn't loop back to landing.
+- `buildShareUrl()` now emits `/assessment#r=...` (legacy `/#r=...` still works via the auto-redirect).
+- Long-form pages' "Back to the assessment" link now points at `/assessment` instead of `/` — matches the button text.
+- `Plausible('pageview')` fired on every path change so SPA navigation correctly registers Landing vs Assessment as distinct analytics pages.
+
+Live-verified all five routes (`/`, `/assessment`, `/methodology`, `/privacy`, `/terms`) return 200 and serve the same SPA shell.
+
+> **Known regression** identified post-deploy: the `hasSavedProgress()` arm of the redirect makes the landing unreachable for any user who has previously interacted with the wizard. Diagnosed below; fix applied in a follow-up commit. See [IMPLEMENTATION_PLAN.md § 4.15](IMPLEMENTATION_PLAN.md#415--landing-page-disappearance-investigation).
+
 ### 2026-05-14 — Post-Sprint-2B refinements (feedback UX + AI response cache)
 
 Two small follow-ups after Sprint 2B shipped:

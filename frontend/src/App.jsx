@@ -4,7 +4,6 @@ import Landing from "./components/Landing.jsx";
 import Methodology from "./components/Methodology.jsx";
 import Privacy from "./components/Privacy.jsx";
 import Terms from "./components/Terms.jsx";
-import { hasSavedProgress } from "./utils/storage.js";
 import { parseAnswersFromHash } from "./utils/shareLink.js";
 import { usePath, navigate } from "./utils/router.js";
 
@@ -21,11 +20,17 @@ import { usePath, navigate } from "./utils/router.js";
 export default function App() {
   const path = usePath();
 
-  // If a returning user or share-link visitor lands at /, replaceState to
-  // /assessment so they go straight to their work and the browser Back
-  // button doesn't loop them back to the landing.
+  // Share-link visitors at / get auto-redirected to /assessment via
+  // replaceState — so the URL semantically matches what they're viewing
+  // and Back doesn't loop to a landing they never asked to see.
+  //
+  // We deliberately do NOT redirect for `hasSavedProgress()` alone:
+  // localStorage from a prior session would make the landing unreachable
+  // for any returning user (regression #4.15). Wizard state still resumes
+  // when they navigate to /assessment via the Start CTA — RAGAdvisor.jsx
+  // restores from localStorage on mount.
   useEffect(() => {
-    if (path === "/" && (parseAnswersFromHash() || hasSavedProgress())) {
+    if (path === "/" && parseAnswersFromHash()) {
       navigate(`/assessment${window.location.hash}`, { replace: true });
     }
   }, [path]);

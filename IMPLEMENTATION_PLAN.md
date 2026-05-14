@@ -209,6 +209,146 @@ surface area is known.
 
 ---
 
+## Phase 4 follow-ups — quality, traceability, and known bugs
+
+Items surfaced during late Phase 4 that aren't strictly blocking launch but
+are worth tracking openly. Each has a current status (`bug`, `exploration`,
+`resolved`) and a recommendation about timing.
+
+### 4.13 — Robust results review
+
+**Status:** exploration. Important. Not a launch blocker but should ship
+before serious users start basing decisions on the recommendations.
+
+**The problem.** The 12-question scoring engine is hand-tuned weights. We
+trust the recommendations because the author wrote them, not because anything
+has actually validated them. A weight typo or a missing edge case could be
+silently routing users to the wrong architecture. Before this tool becomes a
+$50k-budget-defending artifact, it needs evidence behind it.
+
+**Approaches, in increasing order of investment:**
+
+1. **Fixture tests** (1 evening). A `frontend/src/data/__tests__/scoring.test.js`
+   with ~15 hand-curated scenarios — each is a `{answers, expected: {recommendation, confidence, deployment}}`
+   tuple. Run via Vitest. Catches regressions when weights change.
+   *Cheap, immediately useful, no other infrastructure needed.* Start here.
+
+2. **Sensitivity analysis** (1 evening). A small script that programmatically
+   varies one answer at a time across all 12 questions and prints the score
+   deltas. Confirms each weight is doing what we think — e.g. "flipping
+   `corpusChurn` from `rare` to `frequent` should drop the graph score by 6,
+   raise the standard score by 3." Pair with the fixture tests as a regression
+   guard.
+
+3. **Real-world benchmark scenarios** (~2 weeks of part-time work). Curate
+   10–20 published RAG cases (blog posts, conference talks, customer write-ups)
+   with their actual production architecture. Encode each as a 12-answer
+   scenario, run through the tool, measure hit rate. Genuine empirical validation.
+   This is the gold standard.
+
+4. **Expert review batches** (ongoing). Periodically send 5–10 anonymized
+   results to RAG practitioners ("did the tool get this right? what would
+   you have picked?"). Aggregate the disagreement pattern. Update weights or
+   add edge-case bullets based on what surfaces.
+
+5. **In-app A/B testing** (Phase 5+ work). Once the user base is large
+   enough, show two slightly different recommendations to different
+   cohorts and use the feedback-thumb ratio as a signal. Heavy lift; only
+   worth doing at scale.
+
+**Recommendation:** ship #1 and #2 pre-launch, schedule #3 for the first
+spare weekend after launch. #4 and #5 are bigger investments worth doing
+only if the tool gains real traction.
+
+### 4.14 — Traceability capture
+
+**Status:** exploration. Genuinely two features behind one name — user-facing
+and admin-facing.
+
+**The problem.** Right now the results page shows the *output* but not the
+*input* — the user has to scroll back up or restart the wizard to remember
+what they answered. And on the admin side, the feedback payload includes the
+recommendation + confidence but not the 12 answers — so if a thumbs-down comes
+in, the author can't see what the user actually said to get there.
+
+**Two parts, related but separable:**
+
+**A. User-facing — "Your inputs" summary on the results page** (~3 hrs).
+- New `components/InputsSummary.jsx` rendered on the results page, probably between the AI Pipeline Evaluation and the Why-This-Architecture sections.
+- Compact 12-row layout: question label · their answer in plain English.
+- Reuses the existing `ANSWER_PHRASING` translation map from `backend/prompt.py`
+  (port it to the frontend, or duplicate — small enough either way).
+- Optional v2: each row has an "edit" link that jumps them back to that
+  step. Probably defer to v2; the simple read-only summary is the value.
+
+**B. Admin-facing — answers in feedback payload** (~1 hr).
+- Extend `FeedbackRequest` in `backend/models.py` to include an optional
+  `answers: Optional[Answers] = None` field.
+- Update `FeedbackWidget.jsx` to include the answers in the POST body.
+- Update the Discord webhook formatter to optionally render them.
+- Update `/privacy` to disclose that feedback submissions include the 12 answers.
+
+**Recommendation:** Both are small and ship cleanly together. Worth doing
+pre-launch if you have a couple of hours; otherwise schedule for the first
+week post-launch. (B) is especially valuable for tuning the scoring engine
+based on real complaints.
+
+### 4.15 — Landing-page disappearance investigation
+
+**Status:** ⚠️ bug, root-caused, **fix applied** in the same commit that adds
+this entry.
+
+**Symptom.** After the `/` ↔ `/assessment` URL split, visiting the bare
+domain (`rag-advisor-production.up.railway.app/`) redirects directly to
+`/assessment` instead of showing the landing page. Any returning user — i.e.
+anyone who has ever interacted with the wizard — cannot reach the landing
+again from any link or URL bar entry.
+
+**Root cause.** The auto-redirect in `App.jsx` has two arms:
+
+```js
+// before
+if (path === "/" && (parseAnswersFromHash() || hasSavedProgress())) {
+  navigate(`/assessment${window.location.hash}`, { replace: true });
+}
+```
+
+The intent of the `hasSavedProgress()` arm was "returning users with
+in-progress wizards should skip the landing." But `hasSavedProgress()`
+returns true for **any** localStorage data — including completed
+assessments from prior sessions. So every visit by a user who has ever
+used the tool gets bounced to `/assessment`.
+
+**Fix.** Drop the `hasSavedProgress()` arm. Keep only the share-link-hash
+arm (which has unambiguous semantics: "I followed someone else's link to
+see their result, take me there").
+
+```js
+// after
+if (path === "/" && parseAnswersFromHash()) {
+  navigate(`/assessment${window.location.hash}`, { replace: true });
+}
+```
+
+**Effect of the fix.**
+
+- Returning users now see the landing on bare-URL visits to `/`.
+- Their wizard progress isn't lost — `RAGAdvisor.jsx` still restores state
+  from localStorage when they navigate to `/assessment` (via the Start CTA
+  or any direct path).
+- Share-link visitors still bypass the landing and go straight to the result.
+- The browser Back button now correctly returns to the landing from
+  `/assessment`.
+
+**What we gave up.** The "returning users skip onboarding" pattern: someone
+who used the tool yesterday and visits the bare URL today now sees the
+landing instead of being dropped directly into the wizard. That's the right
+trade — visiting `/` is a deliberate "I want home" gesture, and the cost of
+one extra Start-button click for resumption is much smaller than the cost of
+making the landing unreachable.
+
+---
+
 ## Phase 5 — COA 2 · Accounts + Save + Share + Export (conditional)
 
 **Trigger:** Phase 4 exit criteria met.
