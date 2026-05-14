@@ -1,0 +1,15 @@
+{
+  "name": "rag-advisor",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Root dev orchestrator for the RAG Architecture Advisor (Vite frontend + FastAPI backend).",
+  "scripts": {
+    "dev": "concurrently -k -n backend,frontend -c blue,magenta \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "cd backend && .venv/Scripts/uvicorn main:app --reload --port 8000",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build && node -e \"require('fs').cpSync('dist','../backend/static',{recursive:true})\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
