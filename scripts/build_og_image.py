@@ -28,6 +28,9 @@ SOURCE_CANDIDATES = [
     REPO / "frontend" / "og-source.png",
     REPO / "frontend" / "og-source.jpg",
     REPO / "frontend" / "og-source.jpeg",
+    # Fallback locations / names accepted as a convenience.
+    REPO / "test_website_og_screenshot.png",
+    REPO / "og-source.png",
 ]
 TARGET = REPO / "frontend" / "public" / "og-image.png"
 TARGET_W, TARGET_H = 1200, 630
