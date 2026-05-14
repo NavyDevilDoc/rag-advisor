@@ -1,0 +1,35 @@
+# Keep the Docker build context small and avoid leaking secrets.
+
+# Secrets / env
+**/.env
+**/.env.local
+
+# Python
+**/__pycache__
+**/*.py[cod]
+**/.venv
+**/venv
+**/.pytest_cache
+
+# Node
+**/node_modules
+**/dist
+**/.vite
+
+# Git
+.git
+.gitignore
+
+# Editors / OS
+**/.vscode
+**/.idea
+**/.DS_Store
+
+# Local-only docs not needed in the runtime image
+PROGRESS.md
+IMPLEMENTATION_PLAN.md
+CLAUDE.md
+
+# Legacy reference artifacts (kept in the repo for portfolio purposes, not needed in the runtime image)
+rag-advisor.jsx
+rag-architectures.jsx

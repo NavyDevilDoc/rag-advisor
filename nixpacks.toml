@@ -1,6 +1,0 @@
-# Tell Nixpacks to set up BOTH the Node and Python toolchains. Without this,
-# Nixpacks auto-detects only the first provider it sees (Node, via package.json
-# at the project root) and the build's pip install step fails with
-# "pip: command not found". Declaring both providers explicitly is the
-# minimum fix.
-providers = ["node", "python"]
