@@ -43,7 +43,7 @@ export function BrandStrip() {
 export function BackLink() {
   return (
     <a
-      href="/"
+      href="/assessment"
       style={{
         display: "inline-flex",
         alignItems: "center",

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import RAGAdvisor from "./RAGAdvisor.jsx";
 import Landing from "./components/Landing.jsx";
 import Methodology from "./components/Methodology.jsx";
@@ -6,31 +6,43 @@ import Privacy from "./components/Privacy.jsx";
 import Terms from "./components/Terms.jsx";
 import { hasSavedProgress } from "./utils/storage.js";
 import { parseAnswersFromHash } from "./utils/shareLink.js";
+import { usePath, navigate } from "./utils/router.js";
 
+// Routes:
+//   /              → Landing (first-time visitor only — see redirect below)
+//   /assessment    → Wizard / results page
+//   /methodology   → Long-form methodology page
+//   /privacy       → Privacy page
+//   /terms         → Terms page
+//
+// FastAPI's SPA fallback serves index.html for arbitrary paths, so direct
+// visits to /assessment, /methodology, /privacy, /terms all land here and
+// pick their view from window.location.pathname. No router dep needed.
 export default function App() {
-  // Simple pathname-based routing. FastAPI's SPA fallback returns index.html
-  // for arbitrary paths, so /methodology, /privacy, etc. all land here and
-  // we pick the view from window.location.pathname. No router dep needed.
-  const path = typeof window !== "undefined" ? window.location.pathname : "/";
+  const path = usePath();
+
+  // If a returning user or share-link visitor lands at /, replaceState to
+  // /assessment so they go straight to their work and the browser Back
+  // button doesn't loop them back to the landing.
+  useEffect(() => {
+    if (path === "/" && (parseAnswersFromHash() || hasSavedProgress())) {
+      navigate(`/assessment${window.location.hash}`, { replace: true });
+    }
+  }, [path]);
+
+  // Fire a synthetic pageview for analytics on every path change. Plausible's
+  // auto-tracking only fires on initial load; SPA nav needs this nudge so the
+  // dashboard correctly counts Landing vs Assessment as distinct pages.
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.plausible) {
+      window.plausible("pageview");
+    }
+  }, [path]);
 
   if (path === "/methodology") return <Methodology />;
   if (path === "/privacy") return <Privacy />;
   if (path === "/terms") return <Terms />;
-
-  // At "/" we decide between landing and the wizard. Returning users and
-  // share-link visitors skip the landing — landing is only for first-touch.
-  return <Root />;
-}
-
-function Root() {
-  const [showLanding, setShowLanding] = useState(() => {
-    if (parseAnswersFromHash()) return false; // shared-link visitor → jump to results
-    if (hasSavedProgress()) return false;     // returning user → resume their work
-    return true;                               // first-time visitor → onboard
-  });
-
-  if (showLanding) {
-    return <Landing onStart={() => setShowLanding(false)} />;
-  }
-  return <RAGAdvisor />;
+  if (path === "/assessment") return <RAGAdvisor />;
+  // Unknown paths render the Landing — soft 404, friendlier than a hard error.
+  return <Landing />;
 }

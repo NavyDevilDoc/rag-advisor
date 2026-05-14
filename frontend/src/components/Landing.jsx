@@ -2,11 +2,12 @@ import { ArrowRight, CheckCircle, Layers, Sparkles, GitBranch, Cpu } from "lucid
 import { PAGE, BTN_PRIMARY, COLORS, FONTS } from "../styles/tokens.js";
 import { PageFooter } from "./longform.jsx";
 import { track } from "../utils/analytics.js";
+import { navigate } from "../utils/router.js";
 
-export default function Landing({ onStart }) {
+export default function Landing() {
   function handleStart() {
     track("Wizard Start");
-    onStart();
+    navigate("/assessment");
   }
   return (
     <div style={PAGE}>

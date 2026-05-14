@@ -38,7 +38,10 @@ export function decodeAnswers(encoded) {
 }
 
 export function buildShareUrl(answers) {
-  return `${window.location.origin}/#r=${encodeAnswers(answers)}`;
+  // Share links point at the assessment route directly so the recipient
+  // skips the landing page. The legacy /#r=... form still works — App.jsx
+  // auto-redirects from / to /assessment when a share-link hash is present.
+  return `${window.location.origin}/assessment#r=${encodeAnswers(answers)}`;
 }
 
 // Reads the current URL hash for `?#r=<payload>` or `#&r=<payload>` patterns.
