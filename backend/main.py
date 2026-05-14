@@ -1,12 +1,17 @@
+import hashlib
+import json
 import logging
 import os
+from collections import OrderedDict
 from pathlib import Path
+from typing import Optional
 
 import httpx
 from anthropic import APIError, AsyncAnthropic, AuthenticationError
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -32,6 +37,38 @@ logger = logging.getLogger("rag_advisor")
 logging.basicConfig(level=logging.INFO)
 
 MODEL = "claude-sonnet-4-6"
+
+
+# ───── In-memory LRU caches for the two LLM endpoints ─────
+# Same answers → same canonical hash → cached response. First share-link
+# visitor pays the LLM cost; every subsequent viewer of the same payload
+# returns in milliseconds for free. Process-local; restart clears. Fine at
+# this scale — when persistence is needed (Phase 5+), swap for Redis.
+_CACHE_MAX = 1024
+_analyze_cache: "OrderedDict[str, str]" = OrderedDict()
+_eval_cache: "OrderedDict[str, str]" = OrderedDict()
+
+
+def _cache_key(payload: BaseModel) -> str:
+    """SHA-256 over the request body's canonical JSON form. Stable across
+    equivalent payloads (sorted keys) so semantically-identical requests
+    collapse to one cache entry."""
+    canonical = json.dumps(payload.model_dump(), sort_keys=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _cache_get(cache: "OrderedDict[str, str]", key: str) -> Optional[str]:
+    if key in cache:
+        cache.move_to_end(key)  # LRU bump
+        return cache[key]
+    return None
+
+
+def _cache_set(cache: "OrderedDict[str, str]", key: str, value: str) -> None:
+    cache[key] = value
+    cache.move_to_end(key)
+    while len(cache) > _CACHE_MAX:
+        cache.popitem(last=False)
 
 
 def get_real_ip(request: Request) -> str:
@@ -61,6 +98,11 @@ async def health() -> dict[str, str]:
 @app.post("/api/analyze", response_model=AnalyzeResponse)
 @limiter.limit("20/hour")
 async def analyze(request: Request, req: AnalyzeRequest) -> AnalyzeResponse:
+    key = _cache_key(req)
+    cached = _cache_get(_analyze_cache, key)
+    if cached is not None:
+        return AnalyzeResponse(reasoning=cached)
+
     user_prompt = build_user_prompt(req)
     try:
         response = await anthropic_client.messages.create(
@@ -82,6 +124,7 @@ async def analyze(request: Request, req: AnalyzeRequest) -> AnalyzeResponse:
     reasoning = " ".join(parts).strip()
     if not reasoning:
         return AnalyzeResponse(error="empty_response")
+    _cache_set(_analyze_cache, key, reasoning)
     return AnalyzeResponse(reasoning=reasoning)
 
 
@@ -90,6 +133,11 @@ async def analyze(request: Request, req: AnalyzeRequest) -> AnalyzeResponse:
 async def evaluate_pipeline(
     request: Request, req: EvaluatePipelineRequest
 ) -> EvaluatePipelineResponse:
+    key = _cache_key(req)
+    cached = _cache_get(_eval_cache, key)
+    if cached is not None:
+        return EvaluatePipelineResponse(reasoning=cached)
+
     user_prompt = build_evaluation_prompt(req)
     try:
         response = await anthropic_client.messages.create(
@@ -111,6 +159,7 @@ async def evaluate_pipeline(
     reasoning = " ".join(parts).strip()
     if not reasoning:
         return EvaluatePipelineResponse(error="empty_response")
+    _cache_set(_eval_cache, key, reasoning)
     return EvaluatePipelineResponse(reasoning=reasoning)
 
 
