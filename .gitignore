@@ -39,3 +39,9 @@ backend/static/
 # Logs
 *.log
 logs/
+
+# OG-image source (intermediate artifact; the generated frontend/public/og-image.png
+# is what ships, not the source screenshot)
+frontend/og-source.png
+frontend/og-source.jpg
+frontend/og-source.jpeg

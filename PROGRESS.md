@@ -12,7 +12,7 @@ Status snapshot + session log. Three companion documents:
 **Phase 1 — Scaffolding & component split:** ✅ complete (2026-05-13)
 **Phase 2 — Local end-to-end run:** ✅ complete (2026-05-13)
 **Phase 3 — Polish + stretch features:** ✅ complete (2026-05-13)
-**Phase 4 — COA 1: Public deploy + polish:** ⏳ next up
+**Phase 4 — COA 1: Public deploy + polish:** 🔨 in progress (Sprint 1: 4.1 ✅ + 4.3 ✅ + 4.6 ✅ + 4.7 ✅, Sprint 2+: 4.2, 4.4, 4.5, 4.8–4.12)
 **Phase 5 — COA 2: Accounts + Save + Share + Export:** ⏸ conditional on traction
 **Phase 6 — COA 3: Cost calculator + Vendor DB + Code scaffolds:** ⏸ conditional on Phase 5 paying customers
 
@@ -186,6 +186,24 @@ Working session on what it would take to operationalize this into a professional
 - 1+ meaningful inbound (consulting lead, paid-interest, talk invite).
 
 **Wind-down criterion proposed:** < 20 completed assessments in 60 days AND no unsolicited interest. Owner endorsed walking in that case.
+
+---
+
+### 2026-05-14 — Phase 4 Sprint 1 (localStorage + shareable links + brand basics)
+
+- **4.6 localStorage persistence:** wizard state survives accidental refresh / tab close. Versioned key (`ragAdvisor.v1`) so future schema changes can invalidate stale data cleanly. Graceful degradation if localStorage is disabled (private mode / quota exceeded).
+- **4.7 shareable results link:** new `utils/shareLink.js` with base64url-encoded JSON in URL hash. Hydration priority: hash → localStorage → defaults. "Copy share link" button in the hero card with clipboard API + window.prompt fallback. Validation against the answer enums means tampered URLs are silently ignored.
+- **4.3 brand + SEO basics (partial):** favicon as three colored dots (green/purple/orange = standard/graph/agentic) on the brand slate. 8 OG tags + Twitter `summary_large_image` card. PEP 723 inline-deps script at `scripts/build_og_image.py` for converting a source screenshot to the 1200x630 OG image — runs via `uv run scripts/build_og_image.py`, no permanent venv install needed.
+- **Bundle impact:** JS bundle grew from 195.50 KB → 198.35 KB (+1.4%). HTML grew from 0.57 KB → 2.37 KB (all meta-tag prose). Trivial.
+- **Outstanding from Sprint 1:** drop the source screenshot at `frontend/og-source.png`, run the build script, commit the generated `og-image.png`. Until then, social previews will render with the meta-tag text only (no image).
+
+### 2026-05-14 — Phase 4.1 (Railway deploy)
+
+- **GitHub repo created** at https://github.com/NavyDevilDoc/rag-advisor (public, MIT, 6 topic tags). Initial commit `ce4ae14` includes Phases 1-3 + SlowAPI rate limiting (20/hour per IP, X-Forwarded-For aware, smoke-tested locally at a 2/hour test limit producing 200/200/429).
+- **Nixpacks fought us twice.** First failure: only set up Node, no Python toolchain. Added `nixpacks.toml` declaring both `node` + `python` providers. Second failure: Python provider set up `python3, gcc` but not pip on PATH ("pip: command not found" persisted).
+- **Switched to Dockerfile.** Multi-stage build: `node:20-slim` for frontend (`npm ci && vite build`), `python:3.12-slim` for runtime (`pip install` backend deps, copy backend source + frontend dist into `backend/static/`, run uvicorn). `.dockerignore` keeps the build context lean. Railway's `railway.json` now points at `builder=DOCKERFILE` and only retains healthcheck + restart-policy config.
+- **Lesson:** for any multi-language project on Railway, default to a Dockerfile from day one. Nixpacks auto-detection is opinionated and fights non-standard layouts like our `backend/requirements.txt` (not at repo root). The Dockerfile is 17 lines, predictable, faster, and cache-friendly.
+- **Live deploy verified visually:** screenshot showed Close Call confidence (Standard 64 / Graph 62 — 2-point gap), runner-up surfacing, deployment paradigm card, AI Reasoning panel rendering a substantive paragraph that correctly synthesized realtime + air-gap + weekly-churn constraints.
 
 ---
 

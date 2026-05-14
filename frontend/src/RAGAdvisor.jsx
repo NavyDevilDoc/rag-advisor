@@ -4,10 +4,62 @@ import { STEPS } from "./data/questions.js";
 import QuestionStep from "./components/QuestionStep.jsx";
 import ResultsPage from "./components/ResultsPage.jsx";
 import { PAGE, BTN_PRIMARY, BTN_OUTLINE } from "./styles/tokens.js";
+import { parseAnswersFromHash } from "./utils/shareLink.js";
+
+// Persist wizard state across reloads / accidental tab closes. The version
+// suffix on STORAGE_KEY lets us invalidate stale data cleanly if questions or
+// scoring change in a future schema bump.
+const STORAGE_KEY = "ragAdvisor.v1";
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (data?.version !== 1) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function saveToStorage(step, answers) {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ version: 1, step, answers }),
+    );
+  } catch {
+    // localStorage disabled (private mode) or quota exceeded — degrade silently.
+  }
+}
+
+function clearStorage() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {}
+}
 
 export default function RAGAdvisor() {
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState({});
+  // Priority: URL hash (someone shared a link) → localStorage (resume own
+  // work) → defaults. A valid share link jumps directly to the results page.
+  const [step, setStep] = useState(() => {
+    if (parseAnswersFromHash()) return STEPS.length;
+    const stored = loadFromStorage()?.step;
+    if (typeof stored !== "number") return 0;
+    return Math.max(0, Math.min(stored, STEPS.length));
+  });
+  const [answers, setAnswers] = useState(() => {
+    const fromHash = parseAnswersFromHash();
+    if (fromHash) return fromHash;
+    const stored = loadFromStorage()?.answers;
+    return stored && typeof stored === "object" ? stored : {};
+  });
+
+  // Persist on every wizard state change so refresh or tab close doesn't lose work.
+  useEffect(() => {
+    saveToStorage(step, answers);
+  }, [step, answers]);
 
   // Snap to top on every step transition (Next, Back, Start Over, → results).
   // Otherwise the user lands mid-page after clicking through the wizard.
@@ -34,6 +86,12 @@ export default function RAGAdvisor() {
   }
 
   function handleReset() {
+    clearStorage();
+    // Strip any share-link hash so a later refresh starts at step 0 instead of
+    // hydrating the previous shared result back in.
+    if (window.location.hash) {
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
     setStep(0);
     setAnswers({});
   }

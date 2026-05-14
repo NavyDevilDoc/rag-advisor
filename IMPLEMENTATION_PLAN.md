@@ -32,22 +32,21 @@ on.
 **Out of scope:** auth, persistence beyond `localStorage`, server-side state,
 LLM cost-recovery, vendor pricing. All of those wait for Phase 5+.
 
-### 4.1 — Railway deploy
+### 4.1 — Railway deploy ✅ (2026-05-14)
 
-- [ ] Confirm `railway.json` build command against current frontend
-- [ ] Deploy via Railway CLI (`railway up`) or dashboard "deploy from GitHub"
-- [ ] Set `ANTHROPIC_API_KEY` in Railway service env vars
-- [ ] Set `MODEL` env var if we want to make the model overridable per env (decide below)
-- [ ] Verify `/health` returns 200 on `<service>.up.railway.app`
-- [ ] Verify wizard works end-to-end on deployed URL
-- [ ] Smoke-test both `/api/analyze` and `/api/evaluate-pipeline` against the deployed backend
-- [ ] Configure Railway health-check + restart policy (already in `railway.json`)
+- [x] GitHub repo created: https://github.com/NavyDevilDoc/rag-advisor (public, MIT, 6 topic tags)
+- [x] Initial commit includes SlowAPI rate limiting (20/hour per IP, X-Forwarded-For aware) — smoke-tested locally at 2/hour producing 200/200/429
+- [x] **Builder = Dockerfile** (multi-stage: `node:20-slim` build → `python:3.12-slim` runtime). Switched from Nixpacks after two failures around mixed Node+Python toolchain; see PROGRESS.md session log for the trail.
+- [x] Deployed via Railway dashboard "Deploy from GitHub repo"
+- [x] `ANTHROPIC_API_KEY` set in Railway env vars
+- [x] Healthcheck path + restart policy configured in `railway.json`
+- [x] Wizard verified end-to-end via screenshot (Close Call edge case + AI Reasoning rendering correctly)
+- [x] curl smoke test of `/health`, `/api/analyze`, `/api/evaluate-pipeline` against deployed URL — all green at https://rag-advisor-production.up.railway.app (2026-05-14)
 
-**Open design questions:**
+**Open design questions (deferred, not blocking):**
 - Should `MODEL` become an env var so we can A/B Sonnet 4.6 vs Haiku 4.5 in
   production without redeploys? Leaning yes — pulls model selection out of code.
-- Do we need a separate "preview" env (Railway PR previews) before going to prod?
-  Probably not at this scale — single prod env is fine.
+  Worth adding when we first want to experiment with cost.
 
 ### 4.2 — Custom domain
 
@@ -61,17 +60,16 @@ LLM cost-recovery, vendor pricing. All of those wait for Phase 5+.
 **Open:** Will owner want a `.com` for legitimacy, or is `.dev` fine for a
 technical audience? `.dev` is cheaper and signals "for developers."
 
-### 4.3 — Brand + SEO basics
+### 4.3 — Brand + SEO basics (mostly done)
 
-- [ ] Favicon — simple monogram or geometric mark. Generate the full set
-      (16×16, 32×32, 180×180 apple-touch, SVG, manifest.json) via realfavicongenerator.net
-- [ ] `<title>` and meta description in [frontend/index.html](frontend/index.html)
-- [ ] Open Graph tags (`og:title`, `og:description`, `og:image`, `og:url`, `og:type=website`)
-- [ ] Twitter card tags (`twitter:card=summary_large_image`)
-- [ ] Generate an OG image (1200×630). Either: hand-made in Figma, or a static
-      "preview of the wizard" screenshot, or generated via og-image services
-- [ ] `robots.txt` allowing all
-- [ ] `sitemap.xml` — just `/`, `/methodology`, `/privacy` for now
+- [x] Favicon — `frontend/public/favicon.svg`, three-dot mark (green/purple/orange representing the three RAG paradigms) on the brand slate background. SVG-only is sufficient in 2026; all current browsers support SVG favicons.
+- [x] `<title>` + meta description in [frontend/index.html](frontend/index.html)
+- [x] Open Graph tags (8 total: `og:type`, `og:url`, `og:title`, `og:description`, `og:image`, `og:image:width`, `og:image:height`, `og:image:alt`)
+- [x] Twitter card tags (`summary_large_image` variant)
+- [x] OG image build script — `scripts/build_og_image.py` (PEP 723 inline-deps, runs via `uv run scripts/build_og_image.py`). Reads `frontend/og-source.png` → outputs `frontend/public/og-image.png` at 1200×630.
+- [ ] **Pending: drop the source screenshot at `frontend/og-source.png`, run the script, commit the generated `og-image.png`**
+- [ ] `robots.txt` allowing all (deferred — small task, batch with Sprint 3 launch prep)
+- [ ] `sitemap.xml` — just `/`, `/methodology`, `/privacy` (deferred to Sprint 2 alongside those pages)
 
 ### 4.4 — Landing page (above the wizard)
 
@@ -109,23 +107,20 @@ what they'll get.
 deciding whether to trust the recommendation will read this. Spend real
 writing effort here.
 
-### 4.6 — `localStorage` persistence
+### 4.6 — `localStorage` persistence ✅
 
-- [ ] In `RAGAdvisor.jsx`, `useEffect` writes `answers` and `step` to
-      `localStorage` on change
-- [ ] On mount, restore from `localStorage` if present
-- [ ] Clear on Start Over (already wired — just verify localStorage is cleared too)
-- [ ] Schema version key so future changes don't load stale state
+- [x] In `RAGAdvisor.jsx`, `useEffect` writes `{version: 1, step, answers}` to `localStorage` on every change to step or answers
+- [x] On mount, lazy `useState` initializers restore from `localStorage` if present, validating the data shape and clamping `step` to a valid range
+- [x] `handleReset` clears `localStorage` so Start Over truly resets
+- [x] `version: 1` key included so future schema changes can invalidate stale data cleanly
 
-### 4.7 — Shareable results link
+### 4.7 — Shareable results link ✅
 
-- [ ] Add "Copy link" button on results page (next to or above Start Over)
-- [ ] Encode answers into URL hash. **Encoding choice:**
-  - Option A: JSON → base64url. Simple but ~250 chars.
-  - Option B: Bit-packed (each of 12 questions has 3 choices = 2 bits → 24 bits → 4 chars + 12 bytes scores). Compact but fragile if we add questions.
-  - **Leaning A** for now (simple, robust against future question additions).
-- [ ] On page load, if hash present → decode → set answers → jump to results
-- [ ] Test maximum payload + special chars; make sure URL is paste-safe across email clients
+- [x] New util `frontend/src/utils/shareLink.js` — `encodeAnswers`, `decodeAnswers`, `buildShareUrl`, `parseAnswersFromHash`. Encoding is base64url-encoded JSON in the URL hash (Option A); ~200 chars, future-proof against question changes.
+- [x] Validation against the known answer enums (from `STEPS`) defends against tampering / stale links — decoded payload must have every required question with a valid value or the URL is ignored.
+- [x] `RAGAdvisor.jsx` hydrates from URL hash first, then `localStorage`, then defaults. A valid share link jumps directly to the results page (`step = STEPS.length`).
+- [x] `handleReset` also clears the hash via `history.replaceState` so Start Over truly starts over (not back to the shared result).
+- [x] "Copy share link" button as a right-aligned footer line inside the hero card. Uses `navigator.clipboard.writeText` with a `window.prompt` fallback for non-secure-origin / permission-denied cases. Shows "Copied" feedback for 2 seconds.
 
 ### 4.8 — Print-to-PDF stylesheet
 

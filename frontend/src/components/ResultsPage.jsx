@@ -1,4 +1,5 @@
-import { RotateCcw, AlertTriangle, CheckCircle } from "lucide-react";
+import { useState } from "react";
+import { RotateCcw, AlertTriangle, CheckCircle, Link2, Check } from "lucide-react";
 import { computeScores, getReasons, getWarnings } from "../data/scoring.js";
 import {
   RAG_META,
@@ -8,6 +9,7 @@ import {
   rankScores,
 } from "../utils/recommend.js";
 import { BTN_OUTLINE } from "../styles/tokens.js";
+import { buildShareUrl } from "../utils/shareLink.js";
 import ScoreBar from "./ScoreBar.jsx";
 import AIReasoning from "./AIReasoning.jsx";
 import PipelineView from "./PipelineView.jsx";
@@ -92,6 +94,7 @@ export default function ResultsPage({ answers, onReset }) {
             </span>
           )}
         </div>
+        <ShareLinkButton answers={answers} accentColor={meta.color} />
       </div>
 
       {/* Score bars */}
@@ -248,6 +251,57 @@ function SectionLabel({ children }) {
       }}
     >
       {children}
+    </div>
+  );
+}
+
+function ShareLinkButton({ answers, accentColor }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    const url = buildShareUrl(answers);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable (non-secure origin, denied permission).
+      // Fall back to a prompt so the user can copy manually.
+      window.prompt("Copy this share link:", url);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+      <button
+        onClick={handleCopy}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "6px 12px",
+          fontSize: 11,
+          fontWeight: 600,
+          fontFamily: "inherit",
+          letterSpacing: "0.04em",
+          color: copied ? "#22c55e" : accentColor,
+          background: "transparent",
+          border: `1px solid ${copied ? "#22c55e60" : `${accentColor}60`}`,
+          borderRadius: 6,
+          cursor: "pointer",
+          transition: "color 0.15s, border-color 0.15s",
+        }}
+      >
+        {copied ? (
+          <>
+            <Check size={12} /> Copied
+          </>
+        ) : (
+          <>
+            <Link2 size={12} /> Copy share link
+          </>
+        )}
+      </button>
     </div>
   );
 }
