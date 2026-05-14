@@ -1,5 +1,18 @@
-import { ArrowLeft } from "lucide-react";
 import { PAGE, COLORS, FONTS } from "../styles/tokens.js";
+import {
+  BrandStrip,
+  BackLink,
+  PageFooter,
+  H1,
+  Lede,
+  H2,
+  P,
+  Strong,
+  Em,
+  Link,
+  Bullets,
+  NumberedList,
+} from "./longform.jsx";
 
 const REPO = "https://github.com/NavyDevilDoc/rag-advisor";
 
@@ -243,161 +256,14 @@ export default function Methodology() {
           want community input. PRs welcome.
         </P>
 
-        <Footer />
+        <PageFooter />
       </article>
     </div>
   );
 }
 
-// ────────────────────────── building blocks ──────────────────────────
-
-function BrandStrip() {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 10,
-        marginBottom: 40,
-      }}
-    >
-      <svg width="20" height="20" viewBox="0 0 32 32" aria-hidden="true">
-        <rect width="32" height="32" rx="6" fill={COLORS.surface} />
-        <circle cx="8" cy="16" r="3.5" fill={COLORS.standard} />
-        <circle cx="16" cy="16" r="3.5" fill={COLORS.graph} />
-        <circle cx="24" cy="16" r="3.5" fill={COLORS.agentic} />
-      </svg>
-      <span
-        style={{
-          fontSize: 10,
-          letterSpacing: "0.22em",
-          color: COLORS.textDim,
-          textTransform: "uppercase",
-        }}
-      >
-        RAG Architecture Advisor
-      </span>
-    </div>
-  );
-}
-
-function BackLink() {
-  return (
-    <a
-      href="/"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        fontSize: 11,
-        color: COLORS.textMuted,
-        fontFamily: FONTS.sans,
-        textDecoration: "none",
-        marginBottom: 20,
-        letterSpacing: "0.04em",
-      }}
-    >
-      <ArrowLeft size={12} /> Back to the assessment
-    </a>
-  );
-}
-
-function Footer() {
-  return (
-    <div
-      style={{
-        marginTop: 56,
-        paddingTop: 20,
-        borderTop: `1px solid ${COLORS.border}`,
-        fontSize: 10,
-        color: COLORS.textDim,
-        fontFamily: FONTS.sans,
-        letterSpacing: "0.04em",
-        textAlign: "center",
-      }}
-    >
-      Built by Jeremy Springston · MIT licensed ·{" "}
-      <a href={REPO} style={{ color: COLORS.textMuted, textDecoration: "none" }}>
-        GitHub
-      </a>
-    </div>
-  );
-}
-
-function H1({ children }) {
-  return (
-    <h1
-      style={{
-        fontSize: 28,
-        fontWeight: 800,
-        color: COLORS.textPrimary,
-        letterSpacing: "0.01em",
-        margin: "0 0 12px 0",
-      }}
-    >
-      {children}
-    </h1>
-  );
-}
-
-function Lede({ children }) {
-  return (
-    <p
-      style={{
-        fontSize: 14,
-        color: COLORS.textSecondary,
-        fontFamily: FONTS.sans,
-        lineHeight: 1.7,
-        margin: "0 0 36px 0",
-      }}
-    >
-      {children}
-    </p>
-  );
-}
-
-function H2({ children }) {
-  return (
-    <h2
-      style={{
-        fontSize: 16,
-        fontWeight: 700,
-        color: COLORS.textPrimary,
-        letterSpacing: "0.02em",
-        margin: "32px 0 14px 0",
-        paddingTop: 12,
-        borderTop: `1px solid ${COLORS.border}`,
-      }}
-    >
-      {children}
-    </h2>
-  );
-}
-
-function P({ children }) {
-  return (
-    <p
-      style={{
-        fontSize: 13,
-        color: COLORS.textSecondary,
-        fontFamily: FONTS.sans,
-        lineHeight: 1.75,
-        margin: "0 0 14px 0",
-      }}
-    >
-      {children}
-    </p>
-  );
-}
-
-function Strong({ children }) {
-  return <strong style={{ color: COLORS.textPrimary, fontWeight: 700 }}>{children}</strong>;
-}
-
-function Em({ children }) {
-  return <em style={{ color: COLORS.textPrimary, fontStyle: "italic" }}>{children}</em>;
-}
+// ────────────── methodology-only typography (Code/Pre/Table) ──────────────
+// Generic typography helpers live in ./longform.jsx and are imported above.
 
 function Code({ children }) {
   return (
@@ -434,67 +300,6 @@ function Pre({ children }) {
     >
       {children}
     </pre>
-  );
-}
-
-function Link({ href, children }) {
-  const external = href.startsWith("http");
-  return (
-    <a
-      href={href}
-      style={{
-        color: COLORS.primary,
-        textDecoration: "underline",
-        textDecorationColor: `${COLORS.primary}60`,
-        textUnderlineOffset: 2,
-      }}
-      target={external ? "_blank" : undefined}
-      rel={external ? "noreferrer" : undefined}
-    >
-      {children}
-    </a>
-  );
-}
-
-function Bullets({ items }) {
-  return (
-    <ul
-      style={{
-        margin: "0 0 14px 0",
-        paddingLeft: 22,
-        fontSize: 13,
-        color: COLORS.textSecondary,
-        fontFamily: FONTS.sans,
-        lineHeight: 1.75,
-      }}
-    >
-      {items.map((it, i) => (
-        <li key={i} style={{ marginBottom: 6 }}>
-          {it}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function NumberedList({ items }) {
-  return (
-    <ol
-      style={{
-        margin: "0 0 14px 0",
-        paddingLeft: 22,
-        fontSize: 13,
-        color: COLORS.textSecondary,
-        fontFamily: FONTS.sans,
-        lineHeight: 1.75,
-      }}
-    >
-      {items.map((it, i) => (
-        <li key={i} style={{ marginBottom: 10 }}>
-          {it}
-        </li>
-      ))}
-    </ol>
   );
 }
 

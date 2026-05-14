@@ -12,11 +12,11 @@ Status snapshot + session log. Three companion documents:
 **Phase 1 — Scaffolding & component split:** ✅ complete (2026-05-13)
 **Phase 2 — Local end-to-end run:** ✅ complete (2026-05-13)
 **Phase 3 — Polish + stretch features:** ✅ complete (2026-05-13)
-**Phase 4 — COA 1: Public deploy + polish:** 🔨 in progress
+**Phase 4 — COA 1: Public deploy + polish:** 🔨 ready for launch (4.12)
 - Sprint 1 ✅ (4.1 deploy, 4.3 brand basics, 4.6 localStorage, 4.7 share link)
 - Sprint 2A ✅ (4.4 landing, 4.5 methodology, + SPA fallback fix)
-- Owner-owned: 4.2 custom domain
-- Sprint 2B coming: 4.8 print-to-PDF, 4.9 analytics, 4.10 feedback widget, 4.11 privacy/terms, 4.12 launch
+- Sprint 2B ✅ (4.8 print-to-PDF, 4.9 analytics scaffolding, 4.10 feedback, 4.11 privacy/terms)
+- Owner-owned: 4.2 custom domain, 4.12 launch decision (Show HN + cross-posts)
 **Phase 5 — COA 2: Accounts + Save + Share + Export:** ⏸ conditional on traction
 **Phase 6 — COA 3: Cost calculator + Vendor DB + Code scaffolds:** ⏸ conditional on Phase 5 paying customers
 
@@ -192,6 +192,22 @@ Working session on what it would take to operationalize this into a professional
 **Wind-down criterion proposed:** < 20 completed assessments in 60 days AND no unsolicited interest. Owner endorsed walking in that case.
 
 ---
+
+### 2026-05-14 — Phase 4 Sprint 2B (privacy, terms, feedback, analytics, print)
+
+Four launch-prep tasks shipped together:
+
+- **4.11 Privacy + Terms pages** — `components/Privacy.jsx` and `components/Terms.jsx`. Both use the new `components/longform.jsx` shared kit (H1/H2/P/Strong/Em/Link/Bullets/NumberedList/BrandStrip/BackLink/PageFooter) refactored out of Methodology so all four long-form pages have identical typography. The Landing footer was also swapped to use `PageFooter` for consistency, so every page now has Methodology / Privacy / Terms / GitHub links.
+- **4.10 Feedback widget** — `components/FeedbackWidget.jsx` at the bottom of the results page (just above Start Over). Two-stage UX: thumbs-up/down click immediately POSTs to `/api/feedback` (so the signal lands even if the user closes the tab), then a textarea + Send for an optional comment. Backend endpoint logs every submission to stdout (Railway log dashboard) and *optionally* forwards to a Discord webhook if `FEEDBACK_DISCORD_WEBHOOK_URL` is set. Rate-limited at 10/hour per IP. `sessionStorage` prevents the widget re-appearing after submission within the same session.
+- **4.9 Analytics** — `utils/analytics.js`, Plausible-compatible (also works with Umami, Pirsch, any compatible drop-in). **Gated on `VITE_PLAUSIBLE_DOMAIN` env var** — no script loads unless the var is set, so local dev and the no-paid-service path stay zero-overhead. Optional `VITE_ANALYTICS_HOST` env var for self-hosted backends. Five custom events instrumented: `Wizard Start`, `Step Complete` (props: step), `Assessment Complete` (props: recommendation + confidence), `Share Link Copied`, `Feedback Submitted` (props: helpful yes/no).
+- **4.8 Print-to-PDF** — `@media print` rules in `index.html`. Flips dark theme to light backgrounds for ink-friendly output, dims dark text to readable contrast on paper, hides interactive elements (`button`, `textarea`, anything with `.print-hide` class), keeps `article` direct children together with `page-break-inside: avoid`, Letter @ 1.5cm margins. FeedbackWidget root + ShareLinkButton wrapper tagged `.print-hide` so the PDF excludes interactive cruft. The signal-bearing accent colors (architecture color in hero, fit-score bar fills, badge colors) are deliberately preserved — those are information, not decoration.
+- **Bundle impact:** JS 219 → 229 KB (+10 KB) for two pages, the feedback widget, analytics util, and the longform refactor. HTML 2.41 → 4.21 KB (the print CSS).
+
+Two new env vars unlock optional features:
+- `VITE_PLAUSIBLE_DOMAIN=<your-domain>` on the **frontend** (set in Railway service variables; Vite reads at build time) → enables Plausible-compatible analytics.
+- `FEEDBACK_DISCORD_WEBHOOK_URL=<webhook>` on the **backend** → forwards feedback to Discord. Without it, feedback still works (just logs to Railway stdout).
+
+Sprint 2B fully tested locally; production verification will happen on push as usual.
 
 ### 2026-05-14 — Phase 4 Sprint 2A (landing + methodology + SPA fallback)
 

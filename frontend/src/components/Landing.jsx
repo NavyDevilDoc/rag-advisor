@@ -1,16 +1,22 @@
 import { ArrowRight, CheckCircle, Layers, Sparkles, GitBranch, Cpu } from "lucide-react";
 import { PAGE, BTN_PRIMARY, COLORS, FONTS } from "../styles/tokens.js";
+import { PageFooter } from "./longform.jsx";
+import { track } from "../utils/analytics.js";
 
 export default function Landing({ onStart }) {
+  function handleStart() {
+    track("Wizard Start");
+    onStart();
+  }
   return (
     <div style={PAGE}>
       <BrandStrip />
       <div style={{ maxWidth: 620, margin: "0 auto" }}>
-        <Hero onStart={onStart} />
+        <Hero onStart={handleStart} />
         <WhatYouGet />
         <WhoItsFor />
         <HowItWorks />
-        <Footer />
+        <PageFooter />
       </div>
     </div>
   );
@@ -291,45 +297,6 @@ function HowItWorks() {
     </Section>
   );
 }
-
-function Footer() {
-  return (
-    <div
-      style={{
-        marginTop: 40,
-        paddingTop: 20,
-        borderTop: `1px solid ${COLORS.border}`,
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 18,
-        justifyContent: "space-between",
-        alignItems: "center",
-        fontSize: 10,
-        color: COLORS.textDim,
-        fontFamily: FONTS.sans,
-        letterSpacing: "0.04em",
-      }}
-    >
-      <span>Built by Jeremy Springston · MIT licensed</span>
-      <span style={{ display: "flex", gap: 14 }}>
-        <a href="/methodology" style={footerLinkStyle}>Methodology</a>
-        <a
-          href="https://github.com/NavyDevilDoc/rag-advisor"
-          style={footerLinkStyle}
-          target="_blank"
-          rel="noreferrer"
-        >
-          GitHub
-        </a>
-      </span>
-    </div>
-  );
-}
-
-const footerLinkStyle = {
-  color: COLORS.textMuted,
-  textDecoration: "none",
-};
 
 function Section({ label, children }) {
   return (

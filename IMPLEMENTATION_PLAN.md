@@ -122,7 +122,7 @@ writing effort here.
 - [x] `handleReset` also clears the hash via `history.replaceState` so Start Over truly starts over (not back to the shared result).
 - [x] "Copy share link" button as a right-aligned footer line inside the hero card. Uses `navigator.clipboard.writeText` with a `window.prompt` fallback for non-secure-origin / permission-denied cases. Shows "Copied" feedback for 2 seconds.
 
-### 4.8 — Print-to-PDF stylesheet
+### 4.8 — Print-to-PDF stylesheet ✅ (2026-05-14)
 
 - [ ] Add `@media print` rules in a new `styles/print.css` (or inline in the
       results component if simpler)
@@ -139,7 +139,7 @@ we want server-side rendering via Puppeteer? **Leaning browser print** — zero
 server complexity, works offline, no Lambda cold-start. Owner can hit Ctrl+P
 or we add a button that calls `window.print()`.
 
-### 4.9 — Anonymous analytics
+### 4.9 — Anonymous analytics ✅ scaffolded (2026-05-14, activate via env var)
 
 - [ ] Choose analytics provider. Options:
   - Plausible (most privacy-friendly, self-hostable, ~$9/mo)
@@ -162,7 +162,7 @@ or we add a button that calls `window.print()`.
   5. What's the share-link copy rate?
 - [ ] Document data collection in `/privacy` page
 
-### 4.10 — Feedback widget
+### 4.10 — Feedback widget ✅ (2026-05-14)
 
 - [ ] Simple "Did this help? 👍 / 👎 + optional one-line text" at bottom of results
 - [ ] POST to a serverless endpoint or Tally / Google Form / Plausible custom event
@@ -172,7 +172,7 @@ or we add a button that calls `window.print()`.
 - [ ] Show "Thanks!" state after submission; don't ask again in the same session
       (sessionStorage flag)
 
-### 4.11 — Privacy / Terms pages
+### 4.11 — Privacy / Terms pages ✅ (2026-05-14)
 
 - [ ] `/privacy` — what we collect (analytics, no PII, anonymous feedback), how
       Anthropic API processes answers, no retention beyond the API call,

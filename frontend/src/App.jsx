@@ -2,6 +2,8 @@ import { useState } from "react";
 import RAGAdvisor from "./RAGAdvisor.jsx";
 import Landing from "./components/Landing.jsx";
 import Methodology from "./components/Methodology.jsx";
+import Privacy from "./components/Privacy.jsx";
+import Terms from "./components/Terms.jsx";
 import { hasSavedProgress } from "./utils/storage.js";
 import { parseAnswersFromHash } from "./utils/shareLink.js";
 
@@ -12,6 +14,8 @@ export default function App() {
   const path = typeof window !== "undefined" ? window.location.pathname : "/";
 
   if (path === "/methodology") return <Methodology />;
+  if (path === "/privacy") return <Privacy />;
+  if (path === "/terms") return <Terms />;
 
   // At "/" we decide between landing and the wizard. Returning users and
   // share-link visitors skip the landing — landing is only for first-touch.

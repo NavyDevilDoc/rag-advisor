@@ -64,3 +64,18 @@ class EvaluatePipelineRequest(BaseModel):
 class EvaluatePipelineResponse(BaseModel):
     reasoning: Optional[str] = None
     error: Optional[str] = None
+
+
+class FeedbackRequest(BaseModel):
+    helpful: bool
+    # Truncated upper bound on free-text to keep abuse / log spam bounded.
+    comment: Optional[str] = Field(default=None, max_length=500)
+    # Context that lets the owner correlate feedback with the recommendation
+    # the user actually saw. Both optional — bare thumbs still work.
+    recommendation: Optional[Recommendation] = None
+    confidence: Optional[Literal["strong", "good", "close"]] = None
+
+
+class FeedbackResponse(BaseModel):
+    ok: bool = True
+    error: Optional[str] = None

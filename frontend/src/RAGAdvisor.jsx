@@ -6,6 +6,7 @@ import ResultsPage from "./components/ResultsPage.jsx";
 import { PAGE, BTN_PRIMARY, BTN_OUTLINE } from "./styles/tokens.js";
 import { parseAnswersFromHash } from "./utils/shareLink.js";
 import { loadFromStorage, saveToStorage, clearStorage } from "./utils/storage.js";
+import { track } from "./utils/analytics.js";
 
 export default function RAGAdvisor() {
   // Priority: URL hash (someone shared a link) → localStorage (resume own
@@ -45,6 +46,8 @@ export default function RAGAdvisor() {
   }
 
   function handleNext() {
+    // Fire Step Complete with the step we just finished (1-indexed).
+    track("Step Complete", { step: step + 1 });
     setStep((s) => (onLastStep ? totalSteps : s + 1));
   }
 

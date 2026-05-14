@@ -1,6 +1,8 @@
 import logging
+import os
 from pathlib import Path
 
+import httpx
 from anthropic import APIError, AsyncAnthropic, AuthenticationError
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
@@ -14,6 +16,8 @@ from models import (
     AnalyzeResponse,
     EvaluatePipelineRequest,
     EvaluatePipelineResponse,
+    FeedbackRequest,
+    FeedbackResponse,
 )
 from prompt import (
     EVAL_SYSTEM_PROMPT,
@@ -108,6 +112,37 @@ async def evaluate_pipeline(
     if not reasoning:
         return EvaluatePipelineResponse(error="empty_response")
     return EvaluatePipelineResponse(reasoning=reasoning)
+
+
+@app.post("/api/feedback", response_model=FeedbackResponse)
+@limiter.limit("10/hour")
+async def submit_feedback(
+    request: Request, req: FeedbackRequest
+) -> FeedbackResponse:
+    # Always log to stdout so the owner sees feedback in the Railway dashboard.
+    thumb = "👍" if req.helpful else "👎"
+    rec = req.recommendation or "?"
+    conf = req.confidence or "?"
+    comment_part = f' "{req.comment}"' if req.comment else ""
+    logger.info("Feedback: %s — %s (%s confidence)%s", thumb, rec, conf, comment_part)
+
+    # Optionally forward to a Discord webhook for push notifications.
+    webhook = os.environ.get("FEEDBACK_DISCORD_WEBHOOK_URL")
+    if webhook:
+        payload = {
+            "content": (
+                f"{thumb} **{rec}** ({conf} confidence)"
+                + (f"\n> {req.comment}" if req.comment else "")
+            )
+        }
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                await client.post(webhook, json=payload)
+        except httpx.HTTPError as exc:
+            logger.warning("Discord webhook failed: %s", exc)
+            # Don't surface the webhook failure to the user — log capture worked.
+
+    return FeedbackResponse(ok=True)
 
 
 class SPAStaticFiles(StaticFiles):

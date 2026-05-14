@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RotateCcw, AlertTriangle, CheckCircle, Link2, Check } from "lucide-react";
 import { computeScores, getReasons, getWarnings } from "../data/scoring.js";
 import {
@@ -10,10 +10,12 @@ import {
 } from "../utils/recommend.js";
 import { BTN_OUTLINE } from "../styles/tokens.js";
 import { buildShareUrl } from "../utils/shareLink.js";
+import { track } from "../utils/analytics.js";
 import ScoreBar from "./ScoreBar.jsx";
 import AIReasoning from "./AIReasoning.jsx";
 import PipelineView from "./PipelineView.jsx";
 import PipelineEvaluation from "./PipelineEvaluation.jsx";
+import FeedbackWidget from "./FeedbackWidget.jsx";
 
 export default function ResultsPage({ answers, onReset }) {
   const scores = computeScores(answers);
@@ -31,6 +33,21 @@ export default function ResultsPage({ answers, onReset }) {
   const aiPayload = { answers, recommendation: winnerKey, scores };
   const pipelineKey = getPipelineKey(winnerKey, answers.dataSensitivity);
   const pipelinePayload = { ...aiPayload, pipeline_key: pipelineKey };
+  const confidenceShort =
+    confidence.label === "Strong Match"
+      ? "strong"
+      : confidence.label === "Good Match"
+        ? "good"
+        : "close";
+
+  // Fire once on mount per recommendation. The deps include winnerKey so a
+  // user who edits answers and re-completes registers as a fresh completion.
+  useEffect(() => {
+    track("Assessment Complete", {
+      recommendation: winnerKey,
+      confidence: confidenceShort,
+    });
+  }, [winnerKey, confidenceShort]);
 
   return (
     <div style={{ maxWidth: 620, margin: "0 auto" }}>
@@ -228,6 +245,8 @@ export default function ResultsPage({ answers, onReset }) {
         </div>
       )}
 
+      <FeedbackWidget recommendation={winnerKey} confidence={confidenceShort} />
+
       <button
         onClick={onReset}
         style={{ ...BTN_OUTLINE, width: "100%", justifyContent: "center", marginTop: 4 }}
@@ -260,6 +279,7 @@ function ShareLinkButton({ answers, accentColor }) {
 
   async function handleCopy() {
     const url = buildShareUrl(answers);
+    track("Share Link Copied");
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -272,7 +292,7 @@ function ShareLinkButton({ answers, accentColor }) {
   }
 
   return (
-    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+    <div className="print-hide" style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
       <button
         onClick={handleCopy}
         style={{

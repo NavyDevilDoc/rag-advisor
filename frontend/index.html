@@ -39,6 +39,52 @@
     <style>
       html, body, #root { height: 100%; margin: 0; background: #080f1a; }
       body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+      /* ─── Print-to-PDF ─────────────────────────────────────────────
+         Goal: when a user hits Ctrl+P / Save as PDF on the results page,
+         produce a clean, ink-friendly handoff document. Flip the dark
+         theme to light, hide interactive elements, and keep page breaks
+         from splitting content cards awkwardly. */
+      @media print {
+        /* Letter, generous margins, ink-economical color rendering */
+        @page { size: letter; margin: 1.5cm; }
+        html, body, #root {
+          background: #ffffff !important;
+          color: #0f172a !important;
+          print-color-adjust: economy;
+          -webkit-print-color-adjust: economy;
+        }
+
+        /* Hide all interactive controls + anything explicitly opted out */
+        button, textarea, input, select, .print-hide {
+          display: none !important;
+        }
+
+        /* Flip our dark surface backgrounds to white so they don't burn ink */
+        [style*="#080f1a"],
+        [style*="rgb(8, 15, 26)"],
+        [style*="#0f172a"],
+        [style*="rgb(15, 23, 42)"] {
+          background: #ffffff !important;
+        }
+
+        /* Flip the light text colors we use on dark backgrounds to dark.
+           Color-bearing accents (architecture green/purple/orange, score-bar
+           fills, badges) keep their hue — those are signal-bearing. */
+        [style*="#f1f5f9"],
+        [style*="rgb(241, 245, 249)"],
+        [style*="#e2e8f0"],
+        [style*="rgb(226, 232, 240)"],
+        [style*="#cbd5e1"],
+        [style*="rgb(203, 213, 225)"],
+        [style*="#94a3b8"],
+        [style*="rgb(148, 163, 184)"] {
+          color: #1e293b !important;
+        }
+
+        /* Don't split content cards across pages where avoidable */
+        article > * { page-break-inside: avoid; }
+      }
     </style>
   </head>
   <body>
