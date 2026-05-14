@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from models import (
     AnalyzeRequest,
@@ -109,8 +110,27 @@ async def evaluate_pipeline(
     return EvaluatePipelineResponse(reasoning=reasoning)
 
 
+class SPAStaticFiles(StaticFiles):
+    """StaticFiles that falls back to index.html for any unmatched path.
+
+    Starlette's built-in `html=True` only serves index.html at the directory
+    root — it returns 404 for arbitrary client-side routes like `/methodology`.
+    For an SPA, we want the React bundle to load on any non-API path and let
+    the client decide what to render.
+    """
+
+    async def get_response(self, path: str, scope):
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as ex:
+            if ex.status_code == 404:
+                return await super().get_response("index.html", scope)
+            raise
+
+
 # Static file mount must be registered AFTER the API routes so /api/*
-# takes priority. html=True enables SPA fallback for unmatched paths.
+# takes priority. Subclassed StaticFiles makes /methodology, /privacy, etc.
+# all return index.html so the React app can route on the client.
 STATIC_DIR = Path(__file__).parent / "static"
 if STATIC_DIR.exists():
-    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+    app.mount("/", SPAStaticFiles(directory=STATIC_DIR, html=True), name="static")

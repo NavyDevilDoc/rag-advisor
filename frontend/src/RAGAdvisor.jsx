@@ -5,40 +5,7 @@ import QuestionStep from "./components/QuestionStep.jsx";
 import ResultsPage from "./components/ResultsPage.jsx";
 import { PAGE, BTN_PRIMARY, BTN_OUTLINE } from "./styles/tokens.js";
 import { parseAnswersFromHash } from "./utils/shareLink.js";
-
-// Persist wizard state across reloads / accidental tab closes. The version
-// suffix on STORAGE_KEY lets us invalidate stale data cleanly if questions or
-// scoring change in a future schema bump.
-const STORAGE_KEY = "ragAdvisor.v1";
-
-function loadFromStorage() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw);
-    if (data?.version !== 1) return null;
-    return data;
-  } catch {
-    return null;
-  }
-}
-
-function saveToStorage(step, answers) {
-  try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ version: 1, step, answers }),
-    );
-  } catch {
-    // localStorage disabled (private mode) or quota exceeded — degrade silently.
-  }
-}
-
-function clearStorage() {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch {}
-}
+import { loadFromStorage, saveToStorage, clearStorage } from "./utils/storage.js";
 
 export default function RAGAdvisor() {
   // Priority: URL hash (someone shared a link) → localStorage (resume own
