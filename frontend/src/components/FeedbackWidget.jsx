@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ThumbsUp, ThumbsDown, Check } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Check, Plus } from "lucide-react";
 import { COLORS, FONTS } from "../styles/tokens.js";
 import { track } from "../utils/analytics.js";
 
@@ -13,6 +13,8 @@ export default function FeedbackWidget({ recommendation, confidence }) {
   });
   // Tracks which thumb the user picked (null = not yet picked).
   const [helpful, setHelpful] = useState(null);
+  // Whether the optional-comment textarea has been opened.
+  const [showCommentBox, setShowCommentBox] = useState(false);
   const [comment, setComment] = useState("");
   const [commentSent, setCommentSent] = useState(false);
   const [sending, setSending] = useState(false);
@@ -32,10 +34,12 @@ export default function FeedbackWidget({ recommendation, confidence }) {
     }
   }
 
-  // Thumb click → immediate POST (so the signal lands even if the user leaves
-  // before clicking Send on the comment). The comment is a separate POST.
+  // Thumb click is the complete feedback action. We POST immediately and
+  // persist the session flag so a refresh doesn't re-prompt them. The
+  // optional comment is genuinely optional — they can leave without it.
   async function handleThumb(value) {
     setHelpful(value);
+    try { sessionStorage.setItem(SESSION_KEY, "1"); } catch {}
     track("Feedback Submitted", { helpful: value ? "yes" : "no" });
     await postFeedback({
       helpful: value,
@@ -55,12 +59,6 @@ export default function FeedbackWidget({ recommendation, confidence }) {
     });
     setCommentSent(true);
     setSending(false);
-    try { sessionStorage.setItem(SESSION_KEY, "1"); } catch {}
-  }
-
-  function handleDismiss() {
-    try { sessionStorage.setItem(SESSION_KEY, "1"); } catch {}
-    setHidden(true);
   }
 
   return (
@@ -88,7 +86,13 @@ export default function FeedbackWidget({ recommendation, confidence }) {
       </div>
 
       {/* Thumb buttons — always rendered, the picked one shows selected state */}
-      <div style={{ display: "flex", gap: 8, marginBottom: helpful === null ? 0 : 12 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          marginBottom: helpful === null ? 0 : 14,
+        }}
+      >
         <ThumbBtn
           icon={<ThumbsUp size={13} />}
           label="Helpful"
@@ -107,54 +111,57 @@ export default function FeedbackWidget({ recommendation, confidence }) {
         />
       </div>
 
-      {/* After thumb chosen — comment textarea + Send, or "thanks" if sent */}
+      {/* After thumb: confirmation + optional progressive-disclosure comment */}
       {helpful !== null && !commentSent && (
         <div>
           <div
             style={{
-              fontSize: 11,
-              color: COLORS.textMuted,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 12,
+              color: COLORS.good,
               fontFamily: FONTS.sans,
-              marginBottom: 8,
+              marginBottom: showCommentBox ? 12 : 8,
             }}
           >
-            Thanks. Want to add a one-line comment? (optional)
+            <Check size={13} /> Thanks for the feedback.
           </div>
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value.slice(0, 500))}
-            placeholder="e.g. close call but I expected Graph to win because..."
-            rows={2}
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              fontFamily: FONTS.sans,
-              fontSize: 12,
-              padding: "8px 10px",
-              background: COLORS.bg,
-              border: `1px solid ${COLORS.border}`,
-              borderRadius: 6,
-              color: COLORS.textPrimary,
-              resize: "vertical",
-              outline: "none",
-            }}
-          />
-          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+
+          {!showCommentBox && (
             <button
-              onClick={handleSendComment}
-              disabled={!comment.trim() || sending}
-              style={{
-                ...sendBtnStyle,
-                opacity: !comment.trim() || sending ? 0.4 : 1,
-                cursor: !comment.trim() || sending ? "not-allowed" : "pointer",
-              }}
+              onClick={() => setShowCommentBox(true)}
+              style={addCommentBtnStyle}
             >
-              {sending ? "Sending…" : "Send"}
+              <Plus size={11} /> Add a one-line comment?
             </button>
-            <button onClick={handleDismiss} style={dismissBtnStyle}>
-              No thanks
-            </button>
-          </div>
+          )}
+
+          {showCommentBox && (
+            <>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value.slice(0, 500))}
+                placeholder="e.g. close call but I expected Graph to win because..."
+                rows={2}
+                autoFocus
+                style={textareaStyle}
+              />
+              <div style={{ marginTop: 8 }}>
+                <button
+                  onClick={handleSendComment}
+                  disabled={!comment.trim() || sending}
+                  style={{
+                    ...sendBtnStyle,
+                    opacity: !comment.trim() || sending ? 0.4 : 1,
+                    cursor: !comment.trim() || sending ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {sending ? "Sending…" : "Send"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -164,12 +171,13 @@ export default function FeedbackWidget({ recommendation, confidence }) {
             display: "flex",
             alignItems: "center",
             gap: 6,
-            fontSize: 11,
+            fontSize: 12,
             color: COLORS.good,
             fontFamily: FONTS.sans,
+            marginTop: 4,
           }}
         >
-          <Check size={12} /> Thanks for the note.
+          <Check size={13} /> Got it — thanks for the note.
         </div>
       )}
     </div>
@@ -204,6 +212,37 @@ function ThumbBtn({ icon, label, selected, disabled, onClick, accent }) {
   );
 }
 
+const addCommentBtnStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 4,
+  padding: "4px 0",
+  fontSize: 11,
+  fontWeight: 500,
+  fontFamily: "inherit",
+  color: COLORS.textMuted,
+  background: "transparent",
+  border: "none",
+  cursor: "pointer",
+  textDecoration: "underline",
+  textDecorationColor: `${COLORS.textDim}80`,
+  textUnderlineOffset: 3,
+};
+
+const textareaStyle = {
+  width: "100%",
+  boxSizing: "border-box",
+  fontFamily: FONTS.sans,
+  fontSize: 12,
+  padding: "8px 10px",
+  background: COLORS.bg,
+  border: `1px solid ${COLORS.border}`,
+  borderRadius: 6,
+  color: COLORS.textPrimary,
+  resize: "vertical",
+  outline: "none",
+};
+
 const sendBtnStyle = {
   padding: "6px 14px",
   fontSize: 12,
@@ -213,16 +252,4 @@ const sendBtnStyle = {
   background: COLORS.primaryDeep,
   border: "none",
   borderRadius: 6,
-};
-
-const dismissBtnStyle = {
-  padding: "6px 14px",
-  fontSize: 12,
-  fontWeight: 500,
-  fontFamily: "inherit",
-  color: COLORS.textMuted,
-  background: "transparent",
-  border: `1px solid ${COLORS.border}`,
-  borderRadius: 6,
-  cursor: "pointer",
 };
