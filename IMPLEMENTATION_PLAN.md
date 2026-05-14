@@ -71,7 +71,7 @@ technical audience? `.dev` is cheaper and signals "for developers."
 - [ ] `robots.txt` allowing all (deferred — small task, batch with Sprint 3 launch prep)
 - [ ] `sitemap.xml` — just `/`, `/methodology`, `/privacy` (deferred to Sprint 2 alongside those pages)
 
-### 4.4 — Landing page (above the wizard)
+### 4.4 — Landing page ✅ (2026-05-14)
 
 Current state: `RAGAdvisor` renders the wizard as the entire page, no preamble.
 We need a marketing hero above it explaining what this is, who it's for, and
@@ -93,7 +93,7 @@ what they'll get.
 - Should the wizard load lazily so the landing page is super fast TTFB?
   Probably yes; React.lazy + Suspense around `RAGAdvisor`.
 
-### 4.5 — Methodology / about page
+### 4.5 — Methodology / about page ✅ (2026-05-14, with `[TODO]` bio for owner)
 
 - [ ] Long-form write-up of the scoring weights — for each of the 12 questions,
       explain what drives which architecture and why. ~1500 words.

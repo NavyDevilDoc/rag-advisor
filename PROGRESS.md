@@ -12,7 +12,11 @@ Status snapshot + session log. Three companion documents:
 **Phase 1 — Scaffolding & component split:** ✅ complete (2026-05-13)
 **Phase 2 — Local end-to-end run:** ✅ complete (2026-05-13)
 **Phase 3 — Polish + stretch features:** ✅ complete (2026-05-13)
-**Phase 4 — COA 1: Public deploy + polish:** 🔨 in progress (Sprint 1: 4.1 ✅ + 4.3 ✅ + 4.6 ✅ + 4.7 ✅, Sprint 2+: 4.2, 4.4, 4.5, 4.8–4.12)
+**Phase 4 — COA 1: Public deploy + polish:** 🔨 in progress
+- Sprint 1 ✅ (4.1 deploy, 4.3 brand basics, 4.6 localStorage, 4.7 share link)
+- Sprint 2A ✅ (4.4 landing, 4.5 methodology, + SPA fallback fix)
+- Owner-owned: 4.2 custom domain
+- Sprint 2B coming: 4.8 print-to-PDF, 4.9 analytics, 4.10 feedback widget, 4.11 privacy/terms, 4.12 launch
 **Phase 5 — COA 2: Accounts + Save + Share + Export:** ⏸ conditional on traction
 **Phase 6 — COA 3: Cost calculator + Vendor DB + Code scaffolds:** ⏸ conditional on Phase 5 paying customers
 
@@ -188,6 +192,15 @@ Working session on what it would take to operationalize this into a professional
 **Wind-down criterion proposed:** < 20 completed assessments in 60 days AND no unsolicited interest. Owner endorsed walking in that case.
 
 ---
+
+### 2026-05-14 — Phase 4 Sprint 2A (landing + methodology + SPA fallback)
+
+- **4.4 Landing page** — `components/Landing.jsx`. Hero with headline + sub + CTA, three "what you get" cards, "who it's for" persona list, "how it works" with deep-link to methodology, footer with GitHub + license. First-time visitors at `/` see this; returning users with localStorage progress or share-link visitors skip directly to wizard / results.
+- **4.5 Methodology page** — `components/Methodology.jsx`. Long-form credibility piece (~1900 words across 8 sections). Includes real weight-matrix excerpts, the deployment-paradigm decision table, explicit-limitations section, and deep-links to specific GitHub source files (`scoring.js`, `recommend.js`, `pipelines.js`). "About the author" section flagged `[TODO]` — owner needs to write their own bio.
+- **Storage refactor** — extracted `loadFromStorage` / `saveToStorage` / `clearStorage` / `hasSavedProgress` from `RAGAdvisor.jsx` to `utils/storage.js` so `App.jsx` can decide landing-skip without importing the wizard.
+- **Routing** — pathname-based, no router dep. `App.jsx` reads `window.location.pathname` and picks the view. Anchors (`<a href="/methodology">`) trigger full page reloads which is fine given the small bundle.
+- **Backend SPA fallback** — discovered during pre-push smoke test that `/methodology` returned 404 from FastAPI: Starlette's built-in `StaticFiles(html=True)` only serves `index.html` at the directory root, not as a catch-all. Added `SPAStaticFiles` subclass that catches 404s from `super().get_response()` and serves `index.html` instead. Now any non-API path returns the React bundle and lets client-side routing pick the view.
+- **Bundle impact:** JS 198 → 219 KB (+21 KB) for two pages worth of components + typography.
 
 ### 2026-05-14 — Phase 4 Sprint 1 (localStorage + shareable links + brand basics)
 
